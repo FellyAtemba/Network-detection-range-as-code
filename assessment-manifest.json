@@ -1,35 +1,58 @@
 {
   "schema_version": "1.0",
-  "project_id": "SOC-A1",
+  "project_id": "SOC-A3",
   "variant": "V1",
   "candidate_binding": "from-assigned-participant-pack",
   "assigned_pack": {
-    "file_name": "",
-    "sha256": "",
-    "manifest_signature": "",
-    "verified_before_use": false
+    "file_name": "soc-analysis-stage-7-shared-b1.tar.gz",
+    "sha256": "33281c8381cf7a7744f76e016d7b3cb3957f491422a8987dd7d483890009e1fd",
+    "manifest_signature": "b3a67e9d15ee3cae5fd1445e97d10ef006de6181d3427c833847bf087af284d0",
+    "verified_before_use": true
   },
   "commit": "40-character-git-commit",
   "supported_environment": {
-    "os": "",
-    "cpu": "",
-    "memory_gb": 0,
-    "tool_versions": {}
+    "os": "Linux (Kali Rolling)",
+    "cpu": "x86_64",
+    "memory_gb": 16,
+    "tool_versions": {
+      "docker": "28.5.2",
+      "containerlab": "0.59.0",
+      "frrouting": "10.2.1",
+      "suricata": "7.0.8",
+      "python": "3.13.14",
+      "pytest": "9.0.3",
+      "nftables": "present"
+    }
   },
   "commands": {
-    "provision": "",
-    "build": "",
-    "test": "",
-    "clean": ""
+    "provision": "make build",
+    "build": "make lab",
+    "test": "make test",
+    "clean": "make clean"
   },
   "results": {
-    "public_tests": { "passed": 0, "failed": 0, "report": "" },
+    "public_tests": { "passed": 0, "failed": 0, "report": "test-results.xml" },
     "runtime_seconds": 0,
     "peak_memory_mb": 0,
     "output_hashes": {}
   },
-  "inputs": [],
-  "outputs": [],
-  "manual_preconditions": [],
-  "known_limitations": []
+  "inputs": [
+    "configs/variant.json",
+    "evidence/brief/public-fixtures.json"
+  ],
+  "outputs": [
+    "test-results.xml",
+    "pcaps/",
+    "evidence/",
+    "fault-recovery-log.md"
+  ],
+  "manual_preconditions": [
+    "Docker daemon running",
+    "FRRouting image quay.io/frrouting/frr:10.2.1 available",
+    "Suricata image jasonish/suricata:7.0.8 available"
+  ],
+  "known_limitations": [
+    "Engineering self-zone tests pass via local loopback rather than traversing the gateway",
+    "Suricata HOME_NET is hardcoded to 10.51.0.0/16 in suricata.yaml; variant change requires regeneration"
+  ]
 }
