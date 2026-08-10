@@ -1,0 +1,23 @@
+# Containerlab runtime state
+clab-netforge-a3/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Test results (regenerated)
+test-results.xml
+
+# Evidence artifacts (regenerated, not source)
+evidence/suricata-logs/
+evidence/reference-state/
+
+# OS artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Backup files
+.topology.clab.yml.bak

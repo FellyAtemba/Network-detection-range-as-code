@@ -1,0 +1,98 @@
+# =============================================================================
+# SOC-A3 Enterprise Range — Suricata Local Detection Rules
+# Marker: UBI-A7-6C1390578232
+# Network: 10.51.0.0/16  (second_octet = 51)
+#
+# Zone Definitions:
+#   Management   10.51.10.0/27   (eth6)
+#   Finance      10.51.20.0/26   (eth3)
+#   Engineering  10.51.30.0/25   (eth4)
+#   Users        10.51.40.0/24   (eth2)
+#   Servers      10.51.50.0/27   (eth5)
+#   DMZ          10.51.60.0/28   (eth8)
+#   Guest        10.51.70.0/24   (eth7)
+#   Transit      10.51.254.0/30  (eth1)
+#
+# Generated: 2026-08-07
+# =============================================================================
+
+
+# ---------------------------------------------------------------------------
+# 1. SEGMENTATION VIOLATION RULES
+#    Detect traffic crossing zone boundaries that the firewall should deny.
+#    Any hit here indicates either a misconfigured nftables policy or an
+#    active attempt to bypass network segmentation.
+# ---------------------------------------------------------------------------
+
+# 1.1 Guest -> Finance  (all services)
+alert ip 10.51.70.0/24 any -> 10.51.20.0/26 any (msg:"SEGMENTATION VIOLATION: Guest to Finance zone"; classtype:network-scan; priority:1; sid:1000001; rev:1;)
+
+# 1.2 Guest -> Management  (all services)
+alert ip 10.51.70.0/24 any -> 10.51.10.0/27 any (msg:"SEGMENTATION VIOLATION: Guest to Management zone"; classtype:network-scan; priority:1; sid:1000002; rev:1;)
+
+# 1.3 Users -> Management  (all services)
+alert ip 10.51.40.0/24 any -> 10.51.10.0/27 any (msg:"SEGMENTATION VIOLATION: Users to Management zone"; classtype:network-scan; priority:1; sid:1000003; rev:1;)
+
+# 1.4 DMZ -> Management  (all services)
+alert ip 10.51.60.0/28 any -> 10.51.10.0/27 any (msg:"SEGMENTATION VIOLATION: DMZ to Management zone"; classtype:network-scan; priority:1; sid:1000004; rev:1;)
+
+# 1.5 Servers -> Users  (new connections only, not established returns)
+#     Uses flow:to_client,not_established to catch only SYN / new connection
+#     attempts; established return traffic is legitimate.
+alert ip 10.51.50.0/27 any -> 10.51.40.0/24 any (msg:"SEGMENTATION VIOLATION: Servers initiating connection to Users zone"; flow:to_client,not_established; classtype:network-scan; priority:2; sid:1000005; rev:1;)
+
+
+# ---------------------------------------------------------------------------
+# 2. SSH BRUTE-FORCE DETECTION
+#    Detects rapid SSH connection attempts from a single source — a strong
+#    indicator of credential-stuffing or brute-force attacks.
+# ---------------------------------------------------------------------------
+
+# 2.1 SSH brute-force — 5 SYN packets to port 22 within 60 seconds
+alert tcp any any -> any 22 (msg:"SSH BRUTE-FORCE: 5+ connection attempts in 60s from same source"; flow:to_server,stateless; flags:S,12; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-admin; priority:1; sid:1000010; rev:1;)
+
+
+# ---------------------------------------------------------------------------
+# 3. UNAUTHORIZED SSH ACCESS
+#    Only the Management zone (10.51.10.0/27) is authorised to initiate SSH.
+#    Any other source reaching port 22 is a policy violation.
+# ---------------------------------------------------------------------------
+
+# 3.1 SSH from any zone other than Management
+alert tcp !10.51.10.0/27 any -> any 22 (msg:"POLICY VIOLATION: SSH attempt from non-management zone"; flow:to_server,established; classtype:attempted-admin; priority:2; sid:1000011; rev:1;)
+
+
+# ---------------------------------------------------------------------------
+# 4. DNS EXFILTRATION INDICATORS
+#    Abnormally long DNS query names (>50 bytes) are a classic indicator of
+#    DNS-tunnel-based data exfiltration (e.g., iodine, dnscat2).
+# ---------------------------------------------------------------------------
+
+# 4.1 DNS query with query name exceeding 50 bytes
+alert dns any any -> any any (msg:"DATA EXFIL INDICATOR: DNS query name exceeds 50 bytes"; dns.query; content:"."; offset:50; classtype:bad-unknown; priority:2; sid:1000020; rev:1;)
+
+
+# ---------------------------------------------------------------------------
+# 5. OUTBOUND PLAINTEXT HTTP ENFORCEMENT
+#    Enterprise policy mandates HTTPS-only for outbound web access.
+#    Any internal host trying to reach external destinations on TCP/80
+#    violates this policy.
+# ---------------------------------------------------------------------------
+
+# 5.1 Outbound HTTP (TCP/80) from any internal zone to external
+alert tcp [10.51.10.0/27,10.51.20.0/26,10.51.30.0/25,10.51.40.0/24,10.51.50.0/27,10.51.60.0/28,10.51.70.0/24] any -> ![10.51.0.0/16] 80 (msg:"POLICY VIOLATION: Outbound plaintext HTTP detected (HTTPS required)"; flow:to_server,established; classtype:policy-violation; priority:2; sid:1000030; rev:1;)
+
+
+# ---------------------------------------------------------------------------
+# 6. SOURCE IP SPOOFING DETECTION
+#    Traffic arriving from the Guest physical interface (10.51.70.0/24) must
+#    carry a source IP within that subnet.  Anything else is spoofed and
+#    indicates either a misconfigured host or an active attack.
+# ---------------------------------------------------------------------------
+
+# 6.1 Guest zone traffic with source IP outside 10.51.70.0/24
+alert ip !10.51.70.0/24 any -> any any (msg:"SPOOF INDICATOR: Non-guest source IP observed from guest zone"; flow:to_server; classtype:bad-unknown; priority:1; sid:1000040; rev:1;)
+
+# =============================================================================
+# END OF LOCAL RULES — SOC-A3
+# =============================================================================

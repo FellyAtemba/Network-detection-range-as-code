@@ -1,0 +1,37 @@
+{
+  "variant": "V1",
+  "second_octet": 51,
+  "marker": "UBI-A7-6C1390578232",
+  "intern_id": "UBI-2026-0576",
+  "track": "SOC_ANALYSIS",
+  "subnets": {
+    "management": "10.51.10.0/27",
+    "finance": "10.51.20.0/26",
+    "engineering": "10.51.30.0/25",
+    "users": "10.51.40.0/24",
+    "servers": "10.51.50.0/27",
+    "dmz": "10.51.60.0/28",
+    "guest": "10.51.70.0/24",
+    "transit": "10.51.254.0/30"
+  },
+  "gateways": {
+    "management": "10.51.10.1",
+    "finance": "10.51.20.1",
+    "engineering": "10.51.30.1",
+    "users": "10.51.40.1",
+    "servers": "10.51.50.1",
+    "dmz": "10.51.60.1",
+    "guest": "10.51.70.1",
+    "gateway_core": "10.51.254.2"
+  },
+  "hosts": {
+    "management": "10.51.10.10",
+    "finance": "10.51.20.10",
+    "engineering": "10.51.30.10",
+    "users": "10.51.40.10",
+    "servers": "10.51.50.10",
+    "dmz": "10.51.60.10",
+    "guest": "10.51.70.10",
+    "core": "10.51.254.1"
+  }
+}

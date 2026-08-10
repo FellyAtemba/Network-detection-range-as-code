@@ -1,0 +1,62 @@
+name: netforge-a3
+topology:
+  nodes:
+    core:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - /home/at3mba/soc-stage7/configs/core/frr.conf:/etc/frr/frr.conf:ro
+    gateway:
+      kind: linux
+      image: soc-gateway:latest
+      binds:
+        - /home/at3mba/soc-stage7/configs/gateway/bootstrap.sh:/bootstrap.sh:ro
+        - /home/at3mba/soc-stage7/configs/gateway/nftables.conf:/etc/nftables.conf:ro
+      exec:
+        - sh /bootstrap.sh
+    sensor:
+      kind: linux
+      image: jasonish/suricata:7.0.8
+      cmd: -i eth1 -vv
+      binds:
+        - /home/at3mba/soc-stage7/telemetry/suricata.yaml:/etc/suricata/suricata.yaml:ro
+        - /home/at3mba/soc-stage7/detections/local.rules:/var/lib/suricata/rules/suricata.rules:ro
+        - /home/at3mba/soc-stage7/evidence/suricata-logs:/var/log/suricata
+    users:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.40.10/24 dev eth1", "ip route replace default via 10.51.40.1"]
+    finance:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.20.10/26 dev eth1", "ip route replace default via 10.51.20.1"]
+    engineering:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.30.10/25 dev eth1", "ip route replace default via 10.51.30.1"]
+    servers:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.50.10/27 dev eth1", "ip route replace default via 10.51.50.1"]
+    management:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.10.10/27 dev eth1", "ip route replace default via 10.51.10.1"]
+    guest:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.70.10/24 dev eth1", "ip route replace default via 10.51.70.1"]
+    dmz:
+      kind: linux
+      image: soc-host:latest
+      exec: ["ip address add 10.51.60.10/28 dev eth1", "ip route replace default via 10.51.60.1"]
+  links:
+    - endpoints: ["core:eth1", "gateway:eth1"]
+    - endpoints: ["gateway:eth2", "users:eth1"]
+    - endpoints: ["gateway:eth3", "finance:eth1"]
+    - endpoints: ["gateway:eth4", "engineering:eth1"]
+    - endpoints: ["gateway:eth5", "servers:eth1"]
+    - endpoints: ["gateway:eth6", "management:eth1"]
+    - endpoints: ["gateway:eth7", "guest:eth1"]
+    - endpoints: ["gateway:eth8", "dmz:eth1"]
+    - endpoints: ["gateway:eth9", "sensor:eth1"]
