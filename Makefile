@@ -2,9 +2,9 @@
 
 CLAB = docker run --rm --privileged --net=host --pid=host \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /home/at3mba/soc-stage7:/home/at3mba/soc-stage7 \
+  -v /home/at3mba/stage7/network-range:/home/at3mba/stage7/network-range \
   -v /home/at3mba/.local/bin/containerlab:/usr/local/bin/containerlab \
-  -w /home/at3mba/soc-stage7 \
+  -w /home/at3mba/stage7/network-range \
   alpine:3.20 /usr/local/bin/containerlab
 
 build:
@@ -17,7 +17,7 @@ lab: build
 
 clean:
 	$(CLAB) destroy --topo topology.clab.yml --cleanup 2>/dev/null || true
-	docker run --rm --privileged -v /home/at3mba/soc-stage7:/work alpine:3.20 rm -rf /work/clab-netforge-a3/
+	docker run --rm --privileged -v /home/at3mba/stage7/network-range:/work alpine:3.20 rm -rf /work/clab-netforge-a3/
 
 test:
 	python3 -m pytest tests/ -v --tb=short --junitxml=test-results.xml

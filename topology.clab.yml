@@ -5,23 +5,22 @@ topology:
       kind: linux
       image: quay.io/frrouting/frr:10.2.1
       binds:
-        - /home/at3mba/soc-stage7/configs/core/frr.conf:/etc/frr/frr.conf:ro
+        - /home/at3mba/stage7/network-range/configs/core/frr.conf:/etc/frr/frr.conf:ro
     gateway:
       kind: linux
       image: soc-gateway:latest
       binds:
-        - /home/at3mba/soc-stage7/configs/gateway/bootstrap.sh:/bootstrap.sh:ro
-        - /home/at3mba/soc-stage7/configs/gateway/nftables.conf:/etc/nftables.conf:ro
-      exec:
-        - sh /bootstrap.sh
+        - /home/at3mba/stage7/network-range/configs/gateway/bootstrap.sh:/bootstrap.sh:ro
+        - /home/at3mba/stage7/network-range/configs/gateway/nftables.conf:/etc/nftables.conf:ro
     sensor:
       kind: linux
       image: jasonish/suricata:7.0.8
-      cmd: -i eth1 -vv
+      cmd: /wait-and-run.sh
       binds:
-        - /home/at3mba/soc-stage7/telemetry/suricata.yaml:/etc/suricata/suricata.yaml:ro
-        - /home/at3mba/soc-stage7/detections/local.rules:/var/lib/suricata/rules/suricata.rules:ro
-        - /home/at3mba/soc-stage7/evidence/suricata-logs:/var/log/suricata
+        - /home/at3mba/stage7/network-range/scripts/wait-and-run.sh:/wait-and-run.sh:ro
+        - /home/at3mba/stage7/network-range/telemetry/suricata.yaml:/etc/suricata/suricata.yaml:ro
+        - /home/at3mba/stage7/network-range/detections/local.rules:/var/lib/suricata/rules/suricata.rules:ro
+        - /home/at3mba/stage7/network-range/evidence/suricata-logs:/var/log/suricata
     users:
       kind: linux
       image: soc-host:latest

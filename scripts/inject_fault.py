@@ -105,24 +105,39 @@ def inject_fault3():
 def inject_fault4():
     """Fault 4 (D1): Make finance-zone return path asymmetric through core."""
     octet2 = get_octet()
-    # Route finance return traffic via core eth1 instead of direct gateway eth3
-    run_cmd(f"docker exec clab-netforge-a3-servers ip route replace 10.{octet2}.20.0/26 via 10.{octet2}.50.1 dev eth1")
-    run_cmd(f"docker exec clab-netforge-a3-core ip route replace 10.{octet2}.20.0/26 via 10.{octet2}.254.1 dev eth1")
-    # Redirect finance return traffic on gateway away from ct state tracking
+    # Replace gateway's connected route to finance with a route through core.
+    # This creates asymmetric return: return traffic for finance goes
+    # gateway→core→gateway (via eth1 transit) instead of direct delivery via eth3,
+    # causing TTL exhaustion / routing loop that breaks the TCP handshake.
     run_cmd(f"docker exec clab-netforge-a3-gateway ip route replace 10.{octet2}.20.0/26 via 10.{octet2}.254.1 dev eth1")
     print(f"Fault 4 (D1) injected: Finance return path (10.{octet2}.20.0/26) set asymmetric through core.")
 
 def restore():
     """Restore clean baseline state."""
+    # Regenerate configs from variant.json
     run_cmd(f"python3 {os.path.join(ROOT_DIR, 'scripts', 'build_configs.py')}")
+    # Reload nftables rules
     run_cmd("docker exec clab-netforge-a3-gateway nft -f /etc/nftables.conf")
     octet2 = get_octet()
-    # Restore bootstrap.sh mirroring rules on gateway
-    run_cmd("docker exec clab-netforge-a3-gateway sh /bootstrap.sh")
-    # Restore routes on core & servers
+    # Restore tc mirror rules on gateway (without running full bootstrap.sh which blocks on tail)
+    for iface in ["eth1", "eth2", "eth3", "eth4", "eth5", "eth6", "eth7", "eth8"]:
+        run_cmd(f"docker exec clab-netforge-a3-gateway tc qdisc add dev {iface} clsact", check=False)
+        run_cmd(f"docker exec clab-netforge-a3-gateway tc filter add dev {iface} ingress matchall action mirred egress mirror dev eth9", check=False)
+    # Restore all connected routes on gateway (fault4 destroys the finance connected route)
+    route_map = {
+        "eth2": ("40.0/24", "40.1"),   # users
+        "eth3": ("20.0/26", "20.1"),   # finance
+        "eth4": ("30.0/25", "30.1"),   # engineering
+        "eth5": ("50.0/27", "50.1"),   # servers
+        "eth6": ("10.0/27", "10.1"),   # management
+        "eth7": ("70.0/24", "70.1"),   # guest
+        "eth8": ("60.0/28", "60.1"),   # dmz
+    }
+    for iface, (subnet, gw_host) in route_map.items():
+        run_cmd(f"docker exec clab-netforge-a3-gateway ip route replace 10.{octet2}.{subnet} dev {iface} scope link src 10.{octet2}.{gw_host}", check=False)
+    # Restore routes on servers and core
     run_cmd(f"docker exec clab-netforge-a3-servers ip route replace default via 10.{octet2}.50.1")
-    run_cmd(f"docker exec clab-netforge-a3-servers ip route del 10.{octet2}.20.0/26 via 10.{octet2}.50.1 dev eth1", check=False)
-    run_cmd(f"docker exec clab-netforge-a3-core ip route replace 10.{octet2}.0.0/16 via 10.{octet2}.254.2")
+    run_cmd(f"docker exec clab-netforge-a3-core ip route replace 10.{octet2}.0.0/16 via 10.{octet2}.254.2", check=False)
     print("Baseline restored cleanly.")
 
 if __name__ == "__main__":

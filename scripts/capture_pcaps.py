@@ -19,13 +19,14 @@ def capture_traffic(pcap_filename, trigger_fn, duration=5):
     pcap_path = os.path.join(PCAPS_DIR, pcap_filename)
     # Start tcpdump on gateway interface eth9 or eth1
     tcpdump_proc = subprocess.Popen(
-        f"docker exec clab-netforge-a3-gateway tcpdump -i any -w /tmp/temp.pcap -c 100",
+        f"docker exec clab-netforge-a3-gateway timeout {duration + 2} "
+        f"tcpdump -i any -U -w /tmp/temp.pcap -c 100", 
         shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
     time.sleep(1)
     trigger_fn()
     time.sleep(duration)
-    tcpdump_proc.terminate()
+    tcpdump_proc.wait(timeout=duration + 5 )
     try:
         tcpdump_proc.wait(timeout=2)
     except Exception:

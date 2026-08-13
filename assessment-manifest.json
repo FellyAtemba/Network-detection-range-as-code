@@ -31,10 +31,19 @@
     "clean": "make clean"
   },
   "results": {
-    "public_tests": { "passed": 0, "failed": 0, "report": "test-results.xml" },
-    "runtime_seconds": 0,
-    "peak_memory_mb": 0,
-    "output_hashes": {}
+    "public_tests": { "passed": 40, "failed": 0, "report": "test-results.xml" },
+    "runtime_seconds": 43.99,
+    "peak_memory_mb": 66,
+    "output_hashes": {
+      "test-results.xml": "0c42c522cd24f633242334d9dbb6d72416917951f117855c37889c372a938952",
+      "fault-recovery-log.md": "f0cbcaf8d8f9fc292b6fe714adb85c8d957f752d3aba08ecdfaf38098a85a717",
+      "pcaps/allowed_paths.pcap": "a16c7fc38c9017985db13744f08cd49734ffea20ee7f9c597c0e628e94cf5e2a",
+      "pcaps/denied_paths.pcap": "19ef420989fe045af5709b499eb34f96c348cf0904ddd1dc48efb625a14aacc1",
+      "pcaps/fault1_established_failure.pcap": "4b043bacf0883cf209eb2092e6695b02ab29b40b9893661273203aaac8854a77",
+      "pcaps/fault2_broadened_ingress.pcap": "5d25db385c51745bb054f7ee8d40b8e6829b1919b2556a8d67efcd1d7362c364",
+      "pcaps/fault3_sensor_mirror_missing.pcap": "3499280fc39aec09621f8e43f0787c104198437f41628cf29c4faa9bc11dfbb4",
+      "pcaps/fault4_asymmetric_return.pcap": "56044ae15d4c7b08e9c59f11c604370a63cffd813023844bd1aa6eea3454459c"
+    }
   },
   "inputs": [
     "configs/variant.json",

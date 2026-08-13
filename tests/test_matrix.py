@@ -33,6 +33,25 @@ def get_zone_ip(zone, octet2):
 
 PUBLIC_FIXTURES = load_public_fixtures()
 
+def _segment_deny_packet_count():
+    gateway = "clab-netforge-a3-gateway"
+    res = run_container_cmd(gateway, "nft -j list ruleset")
+    if res.returncode != 0:
+        return 0
+    total = 0
+    try:
+        data = json.loads(res.stdout)
+        for item in data.get("nftables", []):
+            rule = item.get("rule")
+            if not rule:
+                continue
+            exprs = rule.get("expr", [])
+            if any(e.get("log", {}).get("prefix", "").strip() == "NF_SEGMENT_DENY" for e in exprs):
+                total += sum(e["counter"]["packets"] for e in exprs if "counter" in e)
+    except Exception:
+        pass
+    return total
+
 @pytest.mark.parametrize("fixture", PUBLIC_FIXTURES, ids=[f["case_id"] for f in PUBLIC_FIXTURES])
 def test_public_fixture_path(fixture, octet2):
     src_zone = fixture["source"]
@@ -50,8 +69,12 @@ def test_public_fixture_path(fixture, octet2):
         assert expected_verdict == "deny"
         return
 
-    result = check_connection(src_zone, dst_ip, port, proto=proto, timeout=2)
     if expected_verdict == "allow":
+        result = check_connection(src_zone, dst_ip, port, proto=proto, timeout=2)
         assert result is True, f"Expected {src_zone} -> {dst_zone} ({service}) to be ALLOWED, but it was DENIED"
     else:
+        before_count = _segment_deny_packet_count()
+        result = check_connection(src_zone, dst_ip, port, proto=proto, timeout=2)
         assert result is False, f"Expected {src_zone} -> {dst_zone} ({service}) to be DENIED, but it was ALLOWED"
+        after_count = _segment_deny_packet_count()
+        assert after_count > before_count, "Deny verdict asserted but firewall counter NF_SEGMENT_DENY did not increase"

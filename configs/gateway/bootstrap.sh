@@ -1,5 +1,10 @@
 #!/bin/sh
 set -eu
+# Wait for containerlab to create ALL interfaces (eth9 is the last link)
+echo "Waiting for interfaces..."
+while ! ip link show eth9 >/dev/null 2>&1; do sleep 0.5; done
+sleep 1
+echo "Interfaces ready, configuring..."
 ip address add 10.51.254.2/30 dev eth1 || true
 ip address add 10.51.40.1/24 dev eth2 || true
 ip address add 10.51.20.1/26 dev eth3 || true

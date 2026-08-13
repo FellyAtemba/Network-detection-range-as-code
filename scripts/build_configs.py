@@ -38,13 +38,12 @@ topology:
       binds:
         - {root_dir}/configs/gateway/bootstrap.sh:/bootstrap.sh:ro
         - {root_dir}/configs/gateway/nftables.conf:/etc/nftables.conf:ro
-      exec:
-        - sh /bootstrap.sh
     sensor:
       kind: linux
       image: jasonish/suricata:7.0.8
-      cmd: -i eth1 -vv
+      cmd: /wait-and-run.sh
       binds:
+        - {root_dir}/scripts/wait-and-run.sh:/wait-and-run.sh:ro
         - {root_dir}/telemetry/suricata.yaml:/etc/suricata/suricata.yaml:ro
         - {root_dir}/detections/local.rules:/var/lib/suricata/rules/suricata.rules:ro
         - {root_dir}/evidence/suricata-logs:/var/log/suricata
@@ -107,6 +106,11 @@ line vty
     # 3. Generate configs/gateway/bootstrap.sh
     bootstrap_content = f"""#!/bin/sh
 set -eu
+# Wait for containerlab to create ALL interfaces (eth9 is the last link)
+echo "Waiting for interfaces..."
+while ! ip link show eth9 >/dev/null 2>&1; do sleep 0.5; done
+sleep 1
+echo "Interfaces ready, configuring..."
 ip address add 10.{octet2}.254.2/30 dev eth1 || true
 ip address add 10.{octet2}.40.1/24 dev eth2 || true
 ip address add 10.{octet2}.20.1/26 dev eth3 || true
@@ -130,6 +134,12 @@ tail -f /dev/null
 
     # 4. Generate configs/gateway/nftables.conf
     nft_content = f"""flush ruleset
+table ip nat {{
+  chain postrouting {{
+    type nat hook postrouting priority 100; policy accept;
+    oifname "eth1" masquerade
+  }}
+}}
 table inet segmentation {{
   chain forward {{
     type filter hook forward priority 0; policy drop;

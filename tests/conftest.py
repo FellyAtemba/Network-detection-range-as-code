@@ -30,7 +30,17 @@ def check_connection(src_zone, dst_ip, port, proto="tcp", timeout=2):
     if proto == "tcp":
         cmd = f"nc -zv -w {timeout} {dst_ip} {port}"
     else:
-        cmd = f"nc -uzv -w {timeout} {dst_ip} {port}"
+        # nc -uzv is unreliable on Alpine (UDP connect() always succeeds).
+        # Use Python to send a UDP datagram and wait for a response.
+        # If the firewall blocks the packet, recvfrom times out and Python exits with code 1.
+        cmd = (
+            f"python3 -c \""
+            f"import socket;"
+            f"s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);"
+            f"s.settimeout({timeout});"
+            f"s.sendto(b'probe',('{dst_ip}',{port}));"
+            f"s.recvfrom(1024)\""
+        )
     try:
         res = run_container_cmd(container, cmd, timeout=timeout+3)
         return res.returncode == 0
